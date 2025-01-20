@@ -1,0 +1,1 @@
+export { CommitSuggester } from './CommitSuggester';
