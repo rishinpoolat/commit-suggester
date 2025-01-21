@@ -10,15 +10,33 @@
   "scripts": {
     "build": "tsc",
     "postbuild": "chmod +x dist/cli.js",
-    "start": "ts-node src/cli.ts"
+    "start": "ts-node src/cli.ts",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test && npm run lint",
+    "preversion": "npm run lint",
+    "version": "npm run format && git add -A src",
+    "postversion": "git push && git push --tags"
   },
+  "files": [
+    "dist/**/*"
+  ],
   "keywords": [
     "git",
     "commit",
     "ai",
-    "gemini"
+    "gemini",
+    "commit-message",
+    "git-commit"
   ],
-  "author": "",
+  "author": "Rishin Poolat",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/ai-commit-suggester.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/ai-commit-suggester/issues"
+  },
+  "homepage": "https://github.com/yourusername/ai-commit-suggester#readme",
   "license": "MIT",
   "dependencies": {
     "axios": "^1.6.0",
