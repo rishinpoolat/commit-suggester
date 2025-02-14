@@ -1,83 +1,82 @@
-#!/usr/bin/env node
-
+#!/usr/bin/env bun
 import { CommitSuggester } from './CommitSuggester';
 import inquirer from 'inquirer';
-import { execSync } from 'child_process';
-import * as dotenv from 'dotenv';
-import * as path from 'path';
+import { config } from 'dotenv';
+import { homedir } from 'os';
+import { join } from 'path';
+import { existsSync } from 'fs';
 import chalk from 'chalk';
 
-async function main() {
+const getApiKey = (): string => {
+  // Check global config first
+  const globalConfigPath = join(homedir(), '.config', 'commit-suggester', '.env');
+  if (existsSync(globalConfigPath)) {
+    config({ path: globalConfigPath });
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      'Gemini API key not found. Please set it up:\n\n' +
+      '1. Get your API key from https://makersuite.google.com/app/apikey\n' +
+      '2. Create config directory:\n' +
+      '   mkdir -p ~/.config/commit-suggester\n' +
+      '3. Save your API key:\n' +
+      '   echo "GEMINI_API_KEY=your_key_here" > ~/.config/commit-suggester/.env'
+    );
+  }
+
+  return apiKey;
+};
+
+const main = async () => {
   try {
-    // Load environment variables
-    dotenv.config({ path: path.join(process.cwd(), '.env') });
-    
-    const apiKey = process.env.GEMINI_API_KEY;
-    
-    if (!apiKey) {
-      console.log(chalk.red('Error: GEMINI_API_KEY not found'));
-      console.log(chalk.yellow('Create a .env file with GEMINI_API_KEY=your_key_here'));
-      process.exit(1);
-    }
-
-    // Check for staged files
-    try {
-      const stagedFiles = execSync('git diff --staged --name-only', { encoding: 'utf8' });
-      if (!stagedFiles.trim()) {
-        console.log(chalk.yellow('No staged changes. Use git add first.'));
-        process.exit(1);
-      }
-    } catch (error) {
-      console.log(chalk.red('Error checking git status. Are you in a git repository?'));
-      process.exit(1);
-    }
-
+    const apiKey = getApiKey();
     const suggester = new CommitSuggester({ apiKey });
     const suggestions = await suggester.getSuggestions();
 
     const choices = [
-      ...suggestions.map((msg, i) => ({
-        name: `${i + 1}. ${msg}`,
-        value: msg
+      ...suggestions.map((msg, index) => ({
+        name: chalk.green(`${index + 1}. ${msg}`),
+        value: msg,
+        short: msg
       })),
-      new inquirer.Separator(),
-      {
-        name: 'Write custom message',
-        value: 'custom'
+      { 
+        name: chalk.yellow('✎ Write custom commit message'),
+        value: 'custom',
+        short: 'Custom message'
       }
     ];
 
-    const { selected } = await inquirer.prompt([{
+    const { selectedCommit } = await inquirer.prompt([{
       type: 'list',
-      name: 'selected',
-      message: 'Choose commit message:',
-      choices
+      name: 'selectedCommit',
+      message: 'Select a commit message:',
+      choices,
+      pageSize: 10,
+      prefix: '🔍'
     }]);
 
-    let commitMessage = selected;
-    if (selected === 'custom') {
-      const { custom } = await inquirer.prompt([{
+    if (selectedCommit === 'custom') {
+      const { customMessage } = await inquirer.prompt([{
         type: 'input',
-        name: 'custom',
-        message: 'Enter commit message:',
-        validate: (input: string) => input.length > 0 || 'Message cannot be empty'
+        name: 'customMessage',
+        message: '✏️  Enter your commit message:',
+        validate: (input) => {
+          if (!input.trim()) return 'Commit message cannot be empty';
+          return true;
+        }
       }]);
-      commitMessage = custom;
+      
+      await suggester.commitChanges(customMessage);
+    } else {
+      await suggester.commitChanges(selectedCommit);
     }
 
-    // Commit changes using execSync
-    console.log(chalk.blue('\nCommitting changes...'));
-    const escapedMessage = commitMessage.replace(/"/g, '\\"');
-    execSync(`git commit -m "${escapedMessage}"`, { stdio: 'inherit' });
-    console.log(chalk.green('Successfully committed!'));
-
   } catch (error) {
-    console.log(chalk.red('Error:', error instanceof Error ? error.message : 'Unknown error'));
+    console.error(chalk.red('Error:'), error.message);
     process.exit(1);
   }
-}
+};
 
-main().catch(error => {
-  console.log(chalk.red('Fatal error:', error));
-  process.exit(1);
-});
+main();

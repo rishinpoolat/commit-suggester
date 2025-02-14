@@ -1,55 +1,33 @@
 {
-  "name": "ai-commit-suggester",
+  "name": "commit-suggester",
   "version": "1.0.0",
-  "description": "AI-powered git commit message suggester",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "description": "AI-powered git commit message suggester using Gemini",
+  "type": "module",
   "bin": {
-    "commit-suggester": "./bin/commit-suggester"
+    "commit-suggester": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
-    "postbuild": "chmod +x bin/commit-suggester",
-    "start": "ts-node src/cli.ts",
-    "prepare": "npm run build",
-    "prepublishOnly": "npm test && npm run lint",
-    "preversion": "npm run lint",
-    "version": "npm run format && git add -A src",
-    "postversion": "git push && git push --tags"
+    "build": "bun build ./src/cli.ts --outfile=./dist/cli.js --target=node && chmod +x ./dist/cli.js",
+    "dev": "bun run src/cli.ts"
   },
-  "files": [
-    "dist/**/*",
-    "bin/*"
-  ],
   "keywords": [
     "git",
     "commit",
     "ai",
-    "gemini",
-    "commit-message",
-    "git-commit"
+    "gemini"
   ],
   "author": "Rishin Poolat",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/yourusername/ai-commit-suggester.git"
-  },
-  "bugs": {
-    "url": "https://github.com/yourusername/ai-commit-suggester/issues"
-  },
-  "homepage": "https://github.com/yourusername/ai-commit-suggester#readme",
   "license": "MIT",
   "dependencies": {
-    "axios": "^1.6.0",
-    "chalk": "^4.1.2",
-    "commander": "^11.0.0",
+    "@google/generative-ai": "^0.1.0",
+    "chalk": "^5.3.0",
     "dotenv": "^16.0.0",
-    "inquirer": "^8.2.6"
+    "inquirer": "^9.2.12"
   },
   "devDependencies": {
-    "@types/inquirer": "^8.2.6",
+    "@types/inquirer": "^9.0.7",
     "@types/node": "^20.0.0",
-    "ts-node": "^10.9.0",
+    "bun-types": "latest",
     "typescript": "^5.0.0"
   }
 }
