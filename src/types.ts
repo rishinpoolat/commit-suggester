@@ -1,19 +1,26 @@
-export interface SuggesterConfig {
-  apiKey: string;
-  customTemplates?: Record<string, string>;
-}
-
 export interface FileChange {
   filename: string;
   diff: string;
   additions: number;
   deletions: number;
+  status: string;
 }
 
 export interface CommitSuggestion {
   message: string;
-  type: string;
+  explanation: string;
+  type?: string;
   scope?: string;
-  source?: 'rule' | 'ai' | 'error';
+  source?: string;
   confidence?: number;
+}
+
+export interface SuggesterConfig {
+  apiKey: string;
+}
+
+export interface AnalysisResult {
+  type: string;
+  scope: string;
+  component: string;
 }

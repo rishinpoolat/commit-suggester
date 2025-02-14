@@ -5,11 +5,11 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "commit": "./dist/cli.js"
+    "commit-suggester": "./bin/commit-suggester"
   },
   "scripts": {
     "build": "tsc",
-    "postbuild": "chmod +x dist/cli.js",
+    "postbuild": "chmod +x bin/commit-suggester",
     "start": "ts-node src/cli.ts",
     "prepare": "npm run build",
     "prepublishOnly": "npm test && npm run lint",
@@ -18,7 +18,8 @@
     "postversion": "git push && git push --tags"
   },
   "files": [
-    "dist/**/*"
+    "dist/**/*",
+    "bin/*"
   ],
   "keywords": [
     "git",
@@ -41,6 +42,7 @@
   "dependencies": {
     "axios": "^1.6.0",
     "chalk": "^4.1.2",
+    "commander": "^11.0.0",
     "dotenv": "^16.0.0",
     "inquirer": "^8.2.6"
   },

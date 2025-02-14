@@ -1,4 +1,4 @@
-import { FileChange, CommitSuggestion } from '../types';
+import { FileChange, CommitSuggestion, AnalysisResult } from '../types';
 
 export class CommitAnalyzer {
   private defaultTemplates: Record<string, string> = {
@@ -25,6 +25,7 @@ export class CommitAnalyzer {
       const analysis = this.analyzeChange(change);
       suggestions.push({
         message: this.generateMessage(analysis.type, analysis.scope, analysis.component),
+        explanation: this.generateExplanation(analysis, change),
         type: analysis.type,
         scope: analysis.scope,
         source: 'rule',
@@ -35,11 +36,7 @@ export class CommitAnalyzer {
     return suggestions;
   }
 
-  private analyzeChange(change: FileChange): {
-    type: string;
-    scope: string;
-    component: string;
-  } {
+  private analyzeChange(change: FileChange): AnalysisResult {
     const type = this.determineChangeType(change);
     const scope = this.determineScope(change.filename);
     const component = this.determineComponent(change.filename);
@@ -73,5 +70,13 @@ export class CommitAnalyzer {
     return template
       .replace('{scope}', scope)
       .replace('{component}', component);
+  }
+
+  private generateExplanation(analysis: AnalysisResult, change: FileChange): string {
+    const changeDescription = change.status === 'added' ? 'Added new' : 
+                            change.status === 'modified' ? 'Modified' : 
+                            'Removed';
+    
+    return `${changeDescription} ${analysis.component} in ${analysis.scope}. Changes include ${change.additions} additions and ${change.deletions} deletions.`;
   }
 }
