@@ -1,15 +1,15 @@
-# Commit Suggester 🤖
+# Commit Suggester
 
-AI-powered git commit message generator using Google's Gemini AI. Get intelligent, conventional commit message suggestions for your changes instantly.
+A TypeScript-based CLI tool that uses Google's Gemini AI to suggest meaningful conventional commit messages for your git changes.
 
-## Features ✨
+## Features
 
-- 🎯 Generate context-aware conventional commit messages
-- 💡 3 AI-generated suggestions for each commit
-- ✍️ Option to write custom messages
-- 🎨 Beautiful, interactive CLI interface
-- 🔄 Seamless integration with your git workflow
+- 🤖 AI-powered commit message generation
 - 📝 Follows [Conventional Commits](https://www.conventionalcommits.org/) specification
+- 🎯 Analyzes git diffs for context-aware suggestions
+- 🔍 Smart scope detection based on file types
+- ✨ Interactive CLI with color-coded suggestions
+- ✅ Option to write custom commit messages
 
 ## Prerequisites
 
@@ -19,82 +19,79 @@ AI-powered git commit message generator using Google's Gemini AI. Get intelligen
 
 ## Installation
 
-1. Clone this repository:
-```bash
+1. Clone the repository:
+\`\`\`bash
 git clone https://github.com/rishinpoolat/commit-suggester.git
 cd commit-suggester
-```
+\`\`\`
 
 2. Install dependencies:
-```bash
+\`\`\`bash
 bun install
-```
+\`\`\`
 
 3. Set up your Gemini API key:
-```bash
+\`\`\`bash
 # Create config directory
 mkdir -p ~/.config/commit-suggester
 
 # Add your API key
 echo "GEMINI_API_KEY=your_api_key_here" > ~/.config/commit-suggester/.env
-```
+\`\`\`
 
 4. Build and install globally:
-```bash
+\`\`\`bash
 bun run build
 bun link
-```
+\`\`\`
 
 Now you can use \`commit-suggester\` in any git repository!
 
 ## Usage
 
-### Basic Usage
-
-In any git repository:
-
 1. Stage your changes:
-```bash
+\`\`\`bash
 git add .
-```
+# or stage specific files
+git add file1.ts file2.ts
+\`\`\`
 
 2. Get commit suggestions:
-```bash
+\`\`\`bash
 commit-suggester
-```
+\`\`\`
 
 3. Select from:
-   - 3 AI-generated suggestions (numbered 1-3)
+   - Three AI-generated suggestions
    - Option to write your own custom message
 
-### Example
-
+Example output:
 \`\`\`
-$ commit-suggester
 🔍 Select a commit message:
-  1. feat(button): add hover state styling
-  2. style(css): update button color scheme
-  3. refactor(components): simplify button props
+  1. feat(auth): add user authentication
+  2. fix(api): resolve login endpoint error
+  3. refactor(utils): simplify auth helpers
   ✎ Write custom commit message
 \`\`\`
 
-### Commit Types
+## Commit Types
 
-The suggestions follow conventional commit format:
+The tool generates suggestions using these conventional commit types:
 
 - \`feat\`: New features
 - \`fix\`: Bug fixes
 - \`docs\`: Documentation changes
-- \`style\`: Code style changes (formatting, etc.)
+- \`style\`: Code style changes
 - \`refactor\`: Code refactoring
-- \`test\`: Adding or modifying tests
+- \`test\`: Adding/updating tests
 - \`chore\`: Maintenance tasks
+- \`perf\`: Performance improvements
 
 ## Development
 
 Want to contribute? Here's how to set up the project for development:
 
-```bash
+\`\`\`bash
 # Clone the repository
 git clone https://github.com/rishinpoolat/commit-suggester.git
 cd commit-suggester
@@ -102,30 +99,40 @@ cd commit-suggester
 # Install dependencies
 bun install
 
-# Run in development mode
-bun run dev
-
 # Build the project
 bun run build
-```
+
+# Link for local testing
+bun link
+\`\`\`
+
+## Project Structure
+
+\`\`\`
+src/
+├── cli.ts              # Command-line interface
+├── commit-suggester.ts # Main class
+├── services/          
+│   ├── ai.service.ts   # Gemini AI integration
+│   └── git.service.ts  # Git operations
+└── types/
+    └── index.ts        # TypeScript types
+\`\`\`
 
 ## Troubleshooting
 
 ### API Key Issues
 
-If you see "Gemini API key not found" error:
-1. Make sure you have created the config directory:
-   ```bash
+If you see "Gemini API key not found":
+1. Get your API key from [Google MakerSuite](https://makersuite.google.com/app/apikey)
+2. Create the config directory:
+   \`\`\`bash
    mkdir -p ~/.config/commit-suggester
-   ```
-2. Check if your API key is set correctly:
-   ```bash
-   cat ~/.config/commit-suggester/.env
-   ```
-3. Ensure the format is exactly:
-   ```
-   GEMINI_API_KEY=your_key_here
-   ```
+   \`\`\`
+3. Save your API key:
+   \`\`\`bash
+   echo "GEMINI_API_KEY=your_key_here" > ~/.config/commit-suggester/.env
+   \`\`\`
 
 ### Git Issues
 
@@ -133,27 +140,26 @@ Make sure:
 - You're in a git repository (\`git init\` if needed)
 - You have staged changes (\`git add .\`)
 - Git user is configured:
-  ```bash
+  \`\`\`bash
   git config --global user.name "Your Name"
   git config --global user.email "your@email.com"
-  ```
+  \`\`\`
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-1. Fork the Project
-2. Create your Feature Branch (\`git checkout -b feature/AmazingFeature\`)
-3. Commit your Changes (\`git commit -m 'feat: add amazing feature'\`)
-4. Push to the Branch (\`git push origin feature/AmazingFeature\`)
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to your branch
 5. Open a Pull Request
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## Credits
 
-- Google's Gemini AI for powering the suggestions
+- [Google's Gemini AI](https://deepmind.google/technologies/gemini/) for powering the suggestions
 - [Conventional Commits](https://www.conventionalcommits.org/) for the commit message specification
-- [Inquirer.js](https://github.com/SBoudrias/Inquirer.js/) for the interactive CLI
