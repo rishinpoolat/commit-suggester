@@ -1,11 +1,17 @@
 #!/usr/bin/env bun
-import { CommitSuggester } from './commit-suggester';
+import { CommitSuggester } from './CommitSuggester';
 import inquirer from 'inquirer';
 import { config } from 'dotenv';
 import { homedir } from 'os';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import chalk from 'chalk';
+
+interface CommitChoice {
+  name: string;
+  value: string;
+  short?: string;
+}
 
 const getApiKey = (): string => {
   const globalConfigPath = join(homedir(), '.config', 'commit-suggester', '.env');
@@ -29,22 +35,16 @@ const getApiKey = (): string => {
   return apiKey;
 };
 
-interface CommitChoice {
-  name: string;
-  value: string;
-  short?: string;
-}
-
 const main = async (): Promise<void> => {
   try {
     const suggester = new CommitSuggester({ apiKey: getApiKey() });
     const suggestions = await suggester.getSuggestions();
 
     const choices: CommitChoice[] = [
-      ...suggestions.map((msg, index) => ({
-        name: chalk.green(`${index + 1}. ${msg}`),
-        value: msg,
-        short: msg
+      ...suggestions.map((message: string, index: number) => ({
+        name: chalk.green(`${index + 1}. ${message}`),
+        value: message,
+        short: message
       })),
       {
         name: chalk.yellow('✎ Write custom commit message'),

@@ -7,8 +7,13 @@
     "commit-suggester": "./dist/cli.js"
   },
   "scripts": {
-    "build": "bun build ./src/cli.ts --outfile=./dist/cli.js --target=node && chmod +x ./dist/cli.js",
-    "dev": "bun run src/cli.ts"
+    "build": "tsc",
+    "postbuild": "chmod +x ./dist/cli.js",
+    "dev": "bun run src/cli.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "typecheck:src": "tsc --noEmit"
   },
   "keywords": [
     "git",
@@ -25,9 +30,13 @@
     "inquirer": "^9.2.12"
   },
   "devDependencies": {
+    "@jest/types": "^29.6.3",
     "@types/inquirer": "^9.0.7",
+    "@types/jest": "^29.5.11",
     "@types/node": "^20.0.0",
     "bun-types": "latest",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
     "typescript": "^5.0.0"
   }
 }

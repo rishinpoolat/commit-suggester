@@ -1,89 +1,52 @@
 import { CommitSuggester } from '../CommitSuggester';
 import { GitService } from '../services/GitService';
 import { AIService } from '../services/AIService';
+import type { FileChange } from '../types';
 
-// Mock the services
 jest.mock('../services/GitService');
 jest.mock('../services/AIService');
 
 describe('CommitSuggester', () => {
-  let suggester: CommitSuggester;
+  let commitSuggester: CommitSuggester;
+  const mockConfig = { apiKey: 'test-key' };
 
   beforeEach(() => {
-    // Reset mocks
+    commitSuggester = new CommitSuggester(mockConfig);
     jest.clearAllMocks();
-    
-    suggester = new CommitSuggester({
-      apiKey: 'test-key',
-      aiEnabled: true
-    });
   });
 
   test('returns error when no staged changes', async () => {
-    // Mock GitService to return empty files
-    (GitService.prototype.getStagedFiles as jest.Mock).mockResolvedValue([]);
+    const GitServiceMock = GitService as jest.MockedClass<typeof GitService>;
+    GitServiceMock.prototype.getStagedFiles.mockResolvedValue([]);
 
-    const suggestions = await suggester.getSuggestions();
-    
-    expect(suggestions).toHaveLength(1);
-    expect(suggestions[0]).toEqual({
-      message: 'No staged changes found',
-      type: 'error',
-      source: 'error'
-    });
+    await expect(commitSuggester.getSuggestions()).rejects.toThrow(
+      'No changes staged for commit'
+    );
   });
 
-  test('returns both rule-based and AI suggestions when files are staged', async () => {
-    // Mock staged files
-    const mockFiles = [{
-      filename: 'src/test.ts',
-      diff: 'test diff',
-      additions: 10,
-      deletions: 5
-    }];
-
-    // Mock historical commits
-    const mockHistory = [{
-      message: 'feat(test): add new feature',
-      type: 'feat',
-      scope: 'test',
-      description: 'add new feature'
-    }];
-
-    (GitService.prototype.getStagedFiles as jest.Mock).mockResolvedValue(mockFiles);
-    (GitService.prototype.getHistoricalCommits as jest.Mock).mockResolvedValue(mockHistory);
-    
-    (AIService.prototype.getSuggestions as jest.Mock).mockResolvedValue([
+  test('returns suggestions when files are staged', async () => {
+    const mockFiles: FileChange[] = [
       {
-        message: 'feat(test): implement new functionality',
-        type: 'feat',
-        scope: 'test',
-        source: 'ai'
+        filename: 'test.ts',
+        diff: 'test changes',
+        additions: 1,
+        deletions: 0,
+        status: 'modified'
       }
-    ]);
+    ];
 
-    const suggestions = await suggester.getSuggestions();
-    
-    expect(suggestions.length).toBeGreaterThan(0);
-    expect(suggestions.some(s => s.source === 'rule')).toBe(true);
-    expect(suggestions.some(s => s.source === 'ai')).toBe(true);
-  });
+    const mockSuggestions: string[] = [
+      'feat(test): add new functionality'
+    ];
 
-  test('falls back to rule-based suggestions when AI fails', async () => {
-    // Mock staged files
-    const mockFiles = [{
-      filename: 'src/test.ts',
-      diff: 'test diff',
-      additions: 10,
-      deletions: 5
-    }];
+    const GitServiceMock = GitService as jest.MockedClass<typeof GitService>;
+    const AIServiceMock = AIService as jest.MockedClass<typeof AIService>;
 
-    (GitService.prototype.getStagedFiles as jest.Mock).mockResolvedValue(mockFiles);
-    (AIService.prototype.getSuggestions as jest.Mock).mockRejectedValue(new Error('AI API failed'));
+    GitServiceMock.prototype.getStagedFiles.mockResolvedValue(mockFiles);
+    AIServiceMock.prototype.getSuggestions.mockResolvedValue(mockSuggestions);
 
-    const suggestions = await suggester.getSuggestions();
-    
-    expect(suggestions.length).toBeGreaterThan(0);
-    expect(suggestions.every(s => s.source === 'rule')).toBe(true);
+    const suggestions = await commitSuggester.getSuggestions();
+    expect(suggestions).toHaveLength(mockSuggestions.length);
+    expect(suggestions[0]).toBe(mockSuggestions[0]);
   });
 });
