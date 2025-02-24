@@ -28,8 +28,8 @@ export class AIService {
           },
         ],
         generationConfig: {
-          temperature: 0.7,
-          topP: 0.8,
+          temperature: 1,
+          topP: 0.95,
           topK: 40,
           maxOutputTokens: 1024,
         },
@@ -51,23 +51,34 @@ export class AIService {
 
   private getFileScope(filename: string): string {
     const ext = filename.split(".").pop()?.toLowerCase();
+    const dir = filename.split("/")[0].toLowerCase();
+
+    // Directory-based scopes
+    if (["src", "lib", "packages"].includes(dir)) {
+      return filename.split("/")[1] || dir;
+    }
+
+    // Extension-based scopes
     switch (ext) {
       case "ts":
       case "tsx":
-        return "typescript";
+        return filename.includes("test") ? "tests" : "core";
       case "js":
       case "jsx":
-        return "javascript";
+        return filename.includes("test") ? "tests" : "core";
       case "css":
       case "scss":
+      case "less":
         return "styles";
       case "test.ts":
       case "spec.ts":
         return "tests";
       case "md":
         return "docs";
+      case "json":
+        return "config";
       default:
-        return filename.split("/")[0] || "core";
+        return "core";
     }
   }
 
@@ -75,7 +86,14 @@ export class AIService {
     try {
       const { stdout: branch } = await execAsync("git branch --show-current");
       const { stdout: recentCommits } = await execAsync("git log -3 --oneline");
-      return `Branch: ${branch.trim()}\n\nRecent commits:\n${recentCommits}`;
+      const { stdout: remoteUrl } = await execAsync(
+        "git remote get-url origin"
+      ).catch(() => ({ stdout: "" }));
+
+      return `Branch: ${branch.trim()}
+Remote: ${remoteUrl.trim()}
+Recent commits:
+${recentCommits}`;
     } catch {
       return "";
     }
@@ -95,7 +113,7 @@ export class AIService {
 
     const repoContext = await this.getRepoContext();
 
-    return `As an expert developer, analyze these git changes and suggest commit messages.
+    return `You are an expert developer analyzing git diffs to generate commit messages. Your response must be in valid JSON format only.
 
 Repository Context:
 ${repoContext}
@@ -119,20 +137,20 @@ ${change.diff}
   )
   .join("\n")}
 
-Generate THREE different commit messages following these rules:
-- Use conventional commits format: type(scope): description
-- Types: feat|fix|refactor|style|docs|test|chore|perf
-- Keep description under 50 characters
-- Use imperative mood ("add" not "added")
-- Don't capitalize first letter
-- No period at end
+Generate THREE commit messages that follow these rules:
+1. Format: type(scope): description
+2. Types: feat|fix|refactor|style|docs|test|chore|perf
+3. First line under 50 characters
+4. Use imperative mood ("add" not "added")
+5. No period at end
+6. Be specific but concise
 
-Return exactly three commit messages in this JSON format:
+Return ONLY a valid JSON object with your suggestions in this format:
 {
   "suggestions": [
     {
       "message": "type(scope): description",
-      "explanation": "Why this message fits the changes"
+      "explanation": "Brief explanation of why this message fits"
     },
     {...},
     {...}
