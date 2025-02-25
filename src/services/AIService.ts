@@ -8,13 +8,21 @@ const execAsync = promisify(exec);
 export class AIService {
   private readonly apiKey: string;
   private readonly baseApiUrl = "https://generativelanguage.googleapis.com/v1/models";
-  private readonly defaultModel = "gemini-pro";
-  private readonly fallbackModel = "gemini-1.5-pro";
+  // Try models in this order until one works
+  private readonly modelOptions = [
+    "gemini-1.5-pro",    // Newest model (Feb 2025)
+    "gemini-pro",        // Original model
+    "gemini-1.0-pro",    // Alternative naming
+    "gemini-1.5-flash",  // Faster model
+    "gemini-2.0-pro"     // Future model (if it exists)
+  ];
+  private readonly defaultModel = "gemini-1.5-pro";
   private currentModel: string;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
-    this.currentModel = this.defaultModel;
+    // Start with the first model in our list
+    this.currentModel = this.modelOptions[0];
   }
 
   private getApiUrl(): string {
@@ -24,12 +32,16 @@ export class AIService {
   async getSuggestions(changes: FileChange[]): Promise<string[]> {
     try {
       const prompt = await this.constructPrompt(changes);
+      
+      // Let's add a note to not wrap in code blocks to avoid parsing issues
+      const enhancedPrompt = prompt + "\n\nIMPORTANT: Do not wrap your JSON response in code blocks or markdown formatting. Return only the raw, valid JSON.";
+      
       const response = await axios.post(`${this.getApiUrl()}?key=${this.apiKey}`, {
         contents: [
           {
             parts: [
               {
-                text: prompt,
+                text: enhancedPrompt,
               },
             ],
           },
@@ -49,12 +61,23 @@ export class AIService {
         let errorMessage = error.response?.data?.error?.message || error.message;
         
         // Check if the error is about model availability
-        if (errorMessage.includes(`models/${this.currentModel} is not found`) && 
-            this.currentModel === this.defaultModel) {
-          // Try with fallback model
-          console.log(`Model ${this.defaultModel} not found, trying with ${this.fallbackModel}...`);
-          this.currentModel = this.fallbackModel;
-          return this.getSuggestions(changes);
+        if (errorMessage.includes(`models/${this.currentModel} is not found`) || 
+            errorMessage.includes('is not supported for generateContent')) {
+          // Find the current model index
+          const currentIndex = this.modelOptions.indexOf(this.currentModel);
+          
+          // Try the next model in our list
+          if (currentIndex < this.modelOptions.length - 1) {
+            const nextModel = this.modelOptions[currentIndex + 1];
+            console.log(`Model ${this.currentModel} not found, trying with ${nextModel}...`);
+            this.currentModel = nextModel;
+            return this.getSuggestions(changes);
+          } else if (currentIndex === -1 && this.currentModel !== this.defaultModel) {
+            // If current model isn't in our list, try the default
+            console.log(`Model ${this.currentModel} not found, trying with ${this.defaultModel}...`);
+            this.currentModel = this.defaultModel;
+            return this.getSuggestions(changes);
+          }
         }
         
         if (errorMessage.includes("is not found")) {
@@ -199,12 +222,62 @@ Return ONLY a valid JSON object with your suggestions in this format:
         throw new Error('Unexpected response format from Gemini API');
       }
 
-      // Clean up response and parse JSON
-      const cleanedResponse = text
-        .replace(/^```(?:json)?\n?|\n?```$/g, "")
-        .trim();
+      // More robust JSON extraction and parsing
+      let cleanedResponse = text.trim();
       
-      const parsed = JSON.parse(cleanedResponse);
+      // Remove code blocks more aggressively
+      if (cleanedResponse.includes('```')) {
+        // Extract content between code block markers if they exist
+        const codeBlockMatch = cleanedResponse.match(/```(?:json)?\n?([\s\S]*?)\n?```/);
+        if (codeBlockMatch && codeBlockMatch[1]) {
+          cleanedResponse = codeBlockMatch[1].trim();
+        } else {
+          // If we can't extract, just remove all backticks
+          cleanedResponse = cleanedResponse.replace(/```json?|```/g, '').trim();
+        }
+      }
+
+      // Try to parse the JSON
+      let parsed;
+      try {
+        parsed = JSON.parse(cleanedResponse);
+      } catch (e) {
+        // If JSON parsing fails, try to extract just the suggestions part
+        console.log('Initial parsing failed, trying to fix JSON format...');
+        
+        // Look for a suggestions array pattern and extract it
+        const suggestionsMatch = cleanedResponse.match(/"suggestions"\s*:\s*(\[\s*\{[\s\S]*?\}\s*\])/);
+        if (suggestionsMatch && suggestionsMatch[1]) {
+          try {
+            const suggestionsArray = JSON.parse(suggestionsMatch[1]);
+            parsed = { suggestions: suggestionsArray };
+          } catch (e2) {
+            console.error('Failed to parse suggestions array:', e2);
+          }
+        }
+        
+        // If we still don't have valid JSON, create a basic structure
+        if (!parsed) {
+          console.log('Creating fallback suggestions from raw text...');
+          // Try to extract something that looks like a commit message
+          const lines = cleanedResponse.split('\n');
+          const messageLines = lines.filter(line => 
+            line.trim() && 
+            line.includes(':') && 
+            !line.includes('{') && 
+            !line.includes('}'));
+          
+          if (messageLines.length > 0) {
+            parsed = {
+              suggestions: messageLines.map(line => ({
+                message: line.trim().replace(/"message"\s*:\s*"(.+?)".*/, '$1'),
+              }))
+            };
+          } else {
+            throw new Error('Could not extract valid commit messages from response');
+          }
+        }
+      }
 
       if (!parsed.suggestions || !Array.isArray(parsed.suggestions)) {
         throw new Error("Invalid response format: missing suggestions array");
