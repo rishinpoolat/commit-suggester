@@ -7,17 +7,24 @@ const execAsync = promisify(exec);
 
 export class AIService {
   private readonly apiKey: string;
-  private readonly apiUrl =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+  private readonly baseApiUrl = "https://generativelanguage.googleapis.com/v1/models";
+  private readonly defaultModel = "gemini-pro";
+  private readonly fallbackModel = "gemini-1.5-pro";
+  private currentModel: string;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
+    this.currentModel = this.defaultModel;
+  }
+
+  private getApiUrl(): string {
+    return `${this.baseApiUrl}/${this.currentModel}:generateContent`;
   }
 
   async getSuggestions(changes: FileChange[]): Promise<string[]> {
     try {
       const prompt = await this.constructPrompt(changes);
-      const response = await axios.post(`${this.apiUrl}?key=${this.apiKey}`, {
+      const response = await axios.post(`${this.getApiUrl()}?key=${this.apiKey}`, {
         contents: [
           {
             parts: [
@@ -39,11 +46,22 @@ export class AIService {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.error("API Response:", error.response?.data);
-        throw new Error(
-          `Failed to generate commit suggestions: ${
-            error.response?.data?.error?.message || error.message
-          }`
-        );
+        let errorMessage = error.response?.data?.error?.message || error.message;
+        
+        // Check if the error is about model availability
+        if (errorMessage.includes(`models/${this.currentModel} is not found`) && 
+            this.currentModel === this.defaultModel) {
+          // Try with fallback model
+          console.log(`Model ${this.defaultModel} not found, trying with ${this.fallbackModel}...`);
+          this.currentModel = this.fallbackModel;
+          return this.getSuggestions(changes);
+        }
+        
+        if (errorMessage.includes("is not found")) {
+          errorMessage += "\n\nTry checking the available models by visiting: https://ai.google.dev/models/gemini";
+        }
+        
+        throw new Error(`Failed to generate commit suggestions: ${errorMessage}`);
       }
       throw error;
     }
@@ -160,12 +178,32 @@ Return ONLY a valid JSON object with your suggestions in this format:
 
   private parseResponse(response: any): string[] {
     try {
-      const text = response.candidates[0].content.parts[0].text;
+      // Different Gemini API versions might have slightly different response formats
+      let text = '';
+      
+      // First try the standard format
+      if (response.candidates && 
+          response.candidates[0]?.content?.parts && 
+          response.candidates[0].content.parts[0]?.text) {
+        text = response.candidates[0].content.parts[0].text;
+      } 
+      // Try alternative formats if needed
+      else if (response.candidates && response.candidates[0]?.text) {
+        text = response.candidates[0].text;
+      }
+      else if (response.text) {
+        text = response.text;
+      }
+      else {
+        console.error('Unexpected API response format:', JSON.stringify(response, null, 2));
+        throw new Error('Unexpected response format from Gemini API');
+      }
 
       // Clean up response and parse JSON
       const cleanedResponse = text
         .replace(/^```(?:json)?\n?|\n?```$/g, "")
         .trim();
+      
       const parsed = JSON.parse(cleanedResponse);
 
       if (!parsed.suggestions || !Array.isArray(parsed.suggestions)) {
@@ -175,7 +213,8 @@ Return ONLY a valid JSON object with your suggestions in this format:
       return parsed.suggestions.map((s: { message: string }) => s.message);
     } catch (error) {
       console.error("Error parsing Gemini response:", error);
-      throw new Error("Failed to parse commit suggestions");
+      console.error("Response received:", JSON.stringify(response, null, 2));
+      throw new Error("Failed to parse commit suggestions. Check console for details.");
     }
   }
 }

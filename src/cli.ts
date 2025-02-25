@@ -24,7 +24,7 @@ const getApiKey = (): string => {
   if (!apiKey) {
     throw new Error(
       'Gemini API key not found. Please set it up:\n\n' +
-      '1. Get your API key from https://makersuite.google.com/app/apikey\n' +
+      '1. Get your API key from https://ai.google.dev/tutorials/setup\n' +
       '2. Create config directory:\n' +
       '   mkdir -p ~/.config/commit-suggester\n' +
       '3. Save your API key:\n' +
