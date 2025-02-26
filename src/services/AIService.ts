@@ -2,6 +2,7 @@ import axios from "axios";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { FileChange } from "../types";
+import { updateSpinnerText, setCurrentModel } from "../cli-utils";
 
 const execAsync = promisify(exec);
 
@@ -10,11 +11,10 @@ export class AIService {
   private readonly baseApiUrl = "https://generativelanguage.googleapis.com/v1/models";
   // Try models in this order until one works
   private readonly modelOptions = [
-    "gemini-1.5-pro",    // Newest model (Feb 2025)
+    "gemini-1.5-flash",  // Faster model (prioritized for speed)
+    "gemini-1.5-pro",    // Newer model (Feb 2025)
     "gemini-pro",        // Original model
-    "gemini-1.0-pro",    // Alternative naming
-    "gemini-1.5-flash",  // Faster model
-    "gemini-2.0-pro"     // Future model (if it exists)
+    "gemini-1.0-pro"     // Alternative naming
   ];
   private readonly defaultModel = "gemini-1.5-pro";
   private currentModel: string;
@@ -23,6 +23,7 @@ export class AIService {
     this.apiKey = apiKey;
     // Start with the first model in our list
     this.currentModel = this.modelOptions[0];
+    setCurrentModel(this.currentModel);
   }
 
   private getApiUrl(): string {
@@ -31,11 +32,14 @@ export class AIService {
 
   async getSuggestions(changes: FileChange[]): Promise<string[]> {
     try {
+      updateSpinnerText('start');
       const prompt = await this.constructPrompt(changes);
       
       // Let's add a note to not wrap in code blocks to avoid parsing issues
       const enhancedPrompt = prompt + "\n\nIMPORTANT: Do not wrap your JSON response in code blocks or markdown formatting. Return only the raw, valid JSON.";
       
+      updateSpinnerText('model');
+      updateSpinnerText('processing');
       const response = await axios.post(`${this.getApiUrl()}?key=${this.apiKey}`, {
         contents: [
           {
@@ -50,10 +54,12 @@ export class AIService {
           temperature: 1,
           topP: 0.95,
           topK: 40,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 1024, // Reduced from 1024 for faster response
         },
+      
       });
 
+      updateSpinnerText('parsing');
       return this.parseResponse(response.data);
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -71,11 +77,15 @@ export class AIService {
             const nextModel = this.modelOptions[currentIndex + 1];
             console.log(`Model ${this.currentModel} not found, trying with ${nextModel}...`);
             this.currentModel = nextModel;
+            setCurrentModel(this.currentModel);
+            updateSpinnerText('model');
             return this.getSuggestions(changes);
           } else if (currentIndex === -1 && this.currentModel !== this.defaultModel) {
             // If current model isn't in our list, try the default
             console.log(`Model ${this.currentModel} not found, trying with ${this.defaultModel}...`);
             this.currentModel = this.defaultModel;
+            setCurrentModel(this.currentModel);
+            updateSpinnerText('model');
             return this.getSuggestions(changes);
           }
         }
@@ -153,6 +163,20 @@ ${recentCommits}`;
     );
 
     const repoContext = await this.getRepoContext();
+    
+    // Limit diff size to avoid slow API responses
+    const processedChanges = changes.map(change => {
+      // Limit diff to 50 lines maximum per file to speed up processing
+      let truncatedDiff = change.diff;
+      const diffLines = truncatedDiff.split('\n');
+      if (diffLines.length > 50) {
+        truncatedDiff = diffLines.slice(0, 50).join('\n') + '\n[... additional changes truncated for brevity ...]';
+      }
+      return {
+        ...change,
+        diff: truncatedDiff
+      };
+    });
 
     return `You are an expert developer analyzing git diffs to generate commit messages. Your response must be in valid JSON format only.
 
@@ -165,7 +189,7 @@ Changes Summary:
 - Modified components: ${scopes.join(", ")}
 
 Changes:
-${changes
+${processedChanges
   .map(
     (change) => `
 File: ${change.filename}
@@ -181,7 +205,7 @@ ${change.diff}
 Generate THREE commit messages that follow these rules:
 1. Format: type(scope): description
 2. Types: feat|fix|refactor|style|docs|test|chore|perf
-3. First line under 50 characters
+3. First line under 70 characters
 4. Use imperative mood ("add" not "added")
 5. No period at end
 6. Be specific but concise

@@ -1,17 +1,19 @@
 #!/usr/bin/env bun
 import { CommitSuggester } from './CommitSuggester';
-import inquirer from 'inquirer';
 import { config } from 'dotenv';
 import { homedir } from 'os';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import chalk from 'chalk';
-
-interface CommitChoice {
-  name: string;
-  value: string;
-  short?: string;
-}
+import { 
+  spinners, 
+  format, 
+  displayWelcomeBanner, 
+  promptForCommitMessage, 
+  confirmCommit,
+  showCommitSuccess,
+  displayCommitSummary
+} from './cli-utils';
 
 const getApiKey = (): string => {
   const globalConfigPath = join(homedir(), '.config', 'commit-suggester', '.env');
@@ -23,12 +25,15 @@ const getApiKey = (): string => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error(
-      'Gemini API key not found. Please set it up:\n\n' +
-      '1. Get your API key from https://ai.google.dev/tutorials/setup\n' +
-      '2. Create config directory:\n' +
-      '   mkdir -p ~/.config/commit-suggester\n' +
-      '3. Save your API key:\n' +
-      '   echo "GEMINI_API_KEY=your_key_here" > ~/.config/commit-suggester/.env'
+      format.box(
+        format.error('Gemini API key not found. Please set it up:\n\n') +
+        format.bullet('Get your API key from https://ai.google.dev/tutorials/setup\n') +
+        format.bullet('Create config directory:\n') +
+        format.dim('   mkdir -p ~/.config/commit-suggester\n') +
+        format.bullet('Save your API key:\n') +
+        format.dim('   echo "GEMINI_API_KEY=your_key_here" > ~/.config/commit-suggester/.env'),
+        'API Key Required'
+      )
     );
   }
 
@@ -37,51 +42,54 @@ const getApiKey = (): string => {
 
 const main = async (): Promise<void> => {
   try {
+    // Display welcome banner
+    displayWelcomeBanner();
+    
+    // Initialize
+    spinners.loading.start();
     const suggester = new CommitSuggester({ apiKey: getApiKey() });
-    const suggestions = await suggester.getSuggestions();
-
-    const choices: CommitChoice[] = [
-      ...suggestions.map((message: string, index: number) => ({
-        name: chalk.green(`${index + 1}. ${message}`),
-        value: message,
-        short: message
-      })),
-      {
-        name: chalk.yellow('✎ Write custom commit message'),
-        value: 'custom',
-        short: 'Custom message'
-      }
-    ];
-
-    const { selectedCommit } = await inquirer.prompt<{ selectedCommit: string }>([{
-      type: 'list',
-      name: 'selectedCommit',
-      message: 'Select a commit message:',
-      choices,
-      pageSize: 10,
-      prefix: '🔍'
-    }]);
-
-    if (selectedCommit === 'custom') {
-      const { customMessage } = await inquirer.prompt<{ customMessage: string }>([{
-        type: 'input',
-        name: 'customMessage',
-        message: '✏️  Enter your commit message:',
-        validate: (input: string) => {
-          if (!input.trim()) return 'Commit message cannot be empty';
-          return true;
-        }
-      }]);
-      
-      await suggester.commitChanges(customMessage);
-      console.log(chalk.green('✓ Successfully committed changes!'));
-    } else {
-      await suggester.commitChanges(selectedCommit);
-      console.log(chalk.green('✓ Successfully committed changes!'));
+    spinners.loading.succeed(format.success('Commit suggester initialized'));
+    
+    // Get staged files info
+    spinners.generating.start();
+    const { suggestions, stats } = await suggester.getSuggestionsWithStats();
+    spinners.generating.succeed(format.success(`Generated ${suggestions.length} commit suggestions`));
+    
+    // Display stats
+    if (stats) {
+      displayCommitSummary(stats.files, stats.additions, stats.deletions);
     }
+    
+    // Format suggestions for display with explanations
+    const formattedSuggestions = suggestions.map(message => ({ message }));
+    
+    // Get user selection
+    const selectedMessage = await promptForCommitMessage(formattedSuggestions);
+    
+    // Confirm commit
+    const confirmed = await confirmCommit(selectedMessage);
+    if (!confirmed) {
+      console.log(format.info('\nCommit cancelled. Exiting...'));
+      process.exit(0);
+    }
+    
+    // Perform commit
+    spinners.committing.start();
+    await suggester.commitChanges(selectedMessage);
+    spinners.committing.succeed();
+    
+    // Show success message
+    showCommitSuccess(selectedMessage);
 
   } catch (error) {
-    console.error(chalk.red('Error:'), error instanceof Error ? error.message : 'An unknown error occurred');
+    // Stop any running spinners
+    Object.values(spinners).forEach(spinner => {
+      if (spinner.isSpinning) {
+        spinner.fail();
+      }
+    });
+    
+    console.error('\n' + format.error('Error: ') + (error instanceof Error ? error.message : 'An unknown error occurred'));
     process.exit(1);
   }
 };

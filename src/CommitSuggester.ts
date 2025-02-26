@@ -5,6 +5,17 @@ export interface CommitConfig {
   apiKey: string;
 }
 
+export interface CommitStats {
+  files: number;
+  additions: number;
+  deletions: number;
+}
+
+export interface SuggestionsResult {
+  suggestions: string[];
+  stats: CommitStats;
+}
+
 export class CommitSuggester {
   private gitService: GitService;
   private aiService: AIService;
@@ -15,6 +26,11 @@ export class CommitSuggester {
   }
 
   async getSuggestions(): Promise<string[]> {
+    const { suggestions } = await this.getSuggestionsWithStats();
+    return suggestions;
+  }
+
+  async getSuggestionsWithStats(): Promise<SuggestionsResult> {
     try {
       if (!await this.gitService.hasGitConfig()) {
         throw new Error(
@@ -25,7 +41,20 @@ export class CommitSuggester {
       }
 
       const files = await this.gitService.getStagedFiles();
-      return await this.aiService.getSuggestions(files);
+      
+      // Calculate stats
+      const stats: CommitStats = {
+        files: files.length,
+        additions: files.reduce((sum, file) => sum + file.additions, 0),
+        deletions: files.reduce((sum, file) => sum + file.deletions, 0)
+      };
+      
+      const suggestions = await this.aiService.getSuggestions(files);
+      
+      return {
+        suggestions,
+        stats
+      };
     } catch (error) {
       if (error instanceof Error && error.message.includes('No staged changes')) {
         throw new Error('No changes staged for commit. Use git add to stage your changes.');
