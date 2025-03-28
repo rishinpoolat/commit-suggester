@@ -16,7 +16,7 @@ export class GitService {
       const files = await this.getStagedFileList();
       
       if (files.length === 0) {
-        throw new Error('No staged changes found. Use git add to stage your changes.');
+        throw new Error('No changes found to commit. Make some changes to your files first.');
       }
 
       const changes = await Promise.all(files.map(file => this.getFileChanges(file)));
@@ -126,6 +126,15 @@ export class GitService {
     }
   }
 
+  async stageAllChanges(): Promise<void> {
+    try {
+      await execAsync('git add .', this.execOptions);
+    } catch (error) {
+      this.handleGitError(error);
+      throw new Error('Failed to stage changes: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  }
+
   async getCurrentBranch(): Promise<string> {
     try {
       const { stdout } = await execAsync('git branch --show-current', this.execOptions);
@@ -150,7 +159,7 @@ export class GitService {
       const { stdout: staged } = await execAsync('git diff --cached --quiet || echo "has changes"', this.execOptions);
       
       if (!staged) {
-        throw new Error('No changes staged for commit. Use git add to stage your changes.');
+        throw new Error('No changes found to commit. Make some changes to your files first.');
       }
 
       // Escape quotes in commit message

@@ -40,6 +40,9 @@ export class CommitSuggester {
         );
       }
 
+      // Automatically stage all changes
+      await this.gitService.stageAllChanges();
+      
       const files = await this.gitService.getStagedFiles();
       
       // Calculate stats
@@ -56,8 +59,8 @@ export class CommitSuggester {
         stats
       };
     } catch (error) {
-      if (error instanceof Error && error.message.includes('No staged changes')) {
-        throw new Error('No changes staged for commit. Use git add to stage your changes.');
+      if (error instanceof Error && error.message.includes('No changes found')) {
+        throw new Error('No changes found to commit. Make some changes to your files first.');
       }
       throw error;
     }
@@ -67,7 +70,7 @@ export class CommitSuggester {
     try {
       const stagedChanges = await this.gitService.getStagedFiles();
       if (stagedChanges.length === 0) {
-        throw new Error('No changes staged for commit. Use git add to stage your changes.');
+        throw new Error('No changes found to commit. Make some changes to your files first.');
       }
 
       // Escape quotes in commit message

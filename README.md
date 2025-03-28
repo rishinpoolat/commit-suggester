@@ -10,6 +10,7 @@ A TypeScript-based CLI tool that uses Google's Gemini AI to suggest meaningful c
 - 🔍 Smart scope detection based on file types
 - ✨ Interactive CLI with color-coded suggestions
 - ✅ Option to write custom commit messages
+- 🚀 Automatically stages all changes (`git add .`)
 
 ## Prerequisites
 
@@ -20,78 +21,75 @@ A TypeScript-based CLI tool that uses Google's Gemini AI to suggest meaningful c
 ## Installation
 
 1. Clone the repository:
-\`\`\`bash
+```bash
 git clone https://github.com/rishinpoolat/commit-suggester.git
 cd commit-suggester
-\`\`\`
+```
 
 2. Install dependencies:
-\`\`\`bash
+```bash
 bun install
-\`\`\`
+```
 
 3. Set up your Gemini API key:
-\`\`\`bash
+```bash
 # Create config directory
 mkdir -p ~/.config/commit-suggester
 
 # Add your API key
 echo "GEMINI_API_KEY=your_api_key_here" > ~/.config/commit-suggester/.env
-\`\`\`
+```
 
 4. Build and install globally:
-\`\`\`bash
+```bash
 bun run build
 bun link
-\`\`\`
+```
 
-Now you can use \`commit-suggester\` in any git repository!
+Now you can use `commit-suggester` in any git repository!
 
 ## Usage
 
-1. Stage your changes:
-\`\`\`bash
-git add .
-# or stage specific files
-git add file1.ts file2.ts
-\`\`\`
+1. Make changes to your files
 
-2. Get commit suggestions:
-\`\`\`bash
+2. Run the commit-suggester tool:
+```bash
 commit-suggester
-\`\`\`
+```
+
+The tool will automatically stage all your changes (equivalent to `git add .`) and then generate commit suggestions.
 
 3. Select from:
    - Three AI-generated suggestions
    - Option to write your own custom message
 
 Example output:
-\`\`\`
+```
 🔍 Select a commit message:
   1. feat(auth): add user authentication
   2. fix(api): resolve login endpoint error
   3. refactor(utils): simplify auth helpers
   ✎ Write custom commit message
-\`\`\`
+```
 
 ## Commit Types
 
 The tool generates suggestions using these conventional commit types:
 
-- \`feat\`: New features
-- \`fix\`: Bug fixes
-- \`docs\`: Documentation changes
-- \`style\`: Code style changes
-- \`refactor\`: Code refactoring
-- \`test\`: Adding/updating tests
-- \`chore\`: Maintenance tasks
-- \`perf\`: Performance improvements
+- `feat`: New features
+- `fix`: Bug fixes
+- `docs`: Documentation changes
+- `style`: Code style changes
+- `refactor`: Code refactoring
+- `test`: Adding/updating tests
+- `chore`: Maintenance tasks
+- `perf`: Performance improvements
 
 ## Development
 
 Want to contribute? Here's how to set up the project for development:
 
-\`\`\`bash
+```bash
 # Clone the repository
 git clone https://github.com/rishinpoolat/commit-suggester.git
 cd commit-suggester
@@ -104,11 +102,11 @@ bun run build
 
 # Link for local testing
 bun link
-\`\`\`
+```
 
 ## Project Structure
 
-\`\`\`
+```
 src/
 ├── cli.ts              # Command-line interface
 ├── commit-suggester.ts # Main class
@@ -117,7 +115,7 @@ src/
 │   └── git.service.ts  # Git operations
 └── types/
     └── index.ts        # TypeScript types
-\`\`\`
+```
 
 ## Troubleshooting
 
@@ -126,24 +124,24 @@ src/
 If you see "Gemini API key not found":
 1. Get your API key from [Google MakerSuite](https://makersuite.google.com/app/apikey)
 2. Create the config directory:
-   \`\`\`bash
+   ```bash
    mkdir -p ~/.config/commit-suggester
-   \`\`\`
+   ```
 3. Save your API key:
-   \`\`\`bash
+   ```bash
    echo "GEMINI_API_KEY=your_key_here" > ~/.config/commit-suggester/.env
-   \`\`\`
+   ```
 
 ### Git Issues
 
 Make sure:
-- You're in a git repository (\`git init\` if needed)
-- You have staged changes (\`git add .\`)
+- You're in a git repository (`git init` if needed)
+- You have made some changes to your files
 - Git user is configured:
-  \`\`\`bash
+  ```bash
   git config --global user.name "Your Name"
   git config --global user.email "your@email.com"
-  \`\`\`
+  ```
 
 ## Contributing
 

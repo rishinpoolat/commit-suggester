@@ -47,8 +47,9 @@ const main = async (): Promise<void> => {
     
     // Initialize
     spinners.loading.start();
+    spinners.loading.text = format.info('Initializing and staging all changes...');
     const suggester = new CommitSuggester({ apiKey: getApiKey() });
-    spinners.loading.succeed(format.success('Commit suggester initialized'));
+    spinners.loading.succeed(format.success('Commit suggester initialized and changes staged'));
     
     // Get staged files info
     spinners.generating.start();
