@@ -108,7 +108,7 @@ bun link
 
 ```
 src/
-├── cli.ts              # Command-line interface
+├── cli.ts              # Command-line interfaces
 ├── commit-suggester.ts # Main class
 ├── services/          
 │   ├── ai.service.ts   # Gemini AI integration
