@@ -5,3 +5,4 @@ dist/
 *.old
 bun.lockb
 package-lock.json
+claude.MD

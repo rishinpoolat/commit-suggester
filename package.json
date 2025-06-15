@@ -1,7 +1,7 @@
 {
-  "name": "commit-suggester",
+  "name": "@rishinpoolat/commit-suggester",
   "version": "1.0.0",
-  "description": "AI-powered git commit message suggester using Gemini",
+  "description": "AI-powered git commit message suggester with multiple AI providers",
   "type": "module",
   "bin": {
     "commit-suggester": "./dist/cli.js"
@@ -19,8 +19,22 @@
     "git",
     "commit",
     "ai",
-    "gemini"
+    "groq", 
+    "openai",
+    "anthropic",
+    "gemini",
+    "conventional-commits",
+    "cli",
+    "automation"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rishinpoolat/commit-suggester.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rishinpoolat/commit-suggester/issues"
+  },
+  "homepage": "https://github.com/rishinpoolat/commit-suggester#readme",
   "author": "Rishin Poolat",
   "license": "MIT",
   "dependencies": {

@@ -1,0 +1,13 @@
+src/
+*.md
+.git/
+.gitignore
+tsconfig*.json
+bun.lockb
+node_modules/
+.env
+.env.*
+*.log
+coverage/
+.nyc_output/
+.DS_Store
