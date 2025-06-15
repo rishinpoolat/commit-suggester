@@ -13,12 +13,13 @@ A simple CLI tool that uses AI to generate conventional commit messages for your
 
 ## Quick Setup
 
-1. **Install dependencies:**
+### **Installation**
 ```bash
-bun install
+# Install globally with Bun
+bun install -g commit-suggester
 ```
 
-2. **Set your AI API key** (choose one):
+### **Setup API Key** (choose one):
 ```bash
 # Recommended - Groq (fast & free)
 export GROQ_API_KEY="your_groq_key_here"
@@ -33,10 +34,10 @@ echo 'export GROQ_API_KEY="your_key"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-3. **Build & Install:**
+### **Ready to Use!**
 ```bash
-bun run build
-bun link
+commit-suggester        # Auto mode
+commit-suggester -i     # Interactive mode
 ```
 
 ## Get API Keys
@@ -156,7 +157,9 @@ src/
 ## Development
 
 ```bash
-# Install dependencies
+# Clone and setup
+git clone https://github.com/rishinpoolat/commit-suggester.git
+cd commit-suggester
 bun install
 
 # Run in development
@@ -167,6 +170,10 @@ bun run build
 
 # Type check
 bun run typecheck
+
+# Test locally
+bun link
+commit-suggester
 ```
 
 ## License

@@ -1,5 +1,5 @@
 {
-  "name": "@rishinpoolat/commit-suggester",
+  "name": "commit-suggester",
   "version": "1.0.0",
   "description": "AI-powered git commit message suggester with multiple AI providers",
   "type": "module",
@@ -13,7 +13,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "typecheck": "tsc -p tsconfig.test.json --noEmit",
-    "typecheck:src": "tsc --noEmit"
+    "typecheck:src": "tsc --noEmit",
+    "prepublishOnly": "bun run build"
   },
   "keywords": [
     "git",
@@ -35,7 +36,10 @@
     "url": "https://github.com/rishinpoolat/commit-suggester/issues"
   },
   "homepage": "https://github.com/rishinpoolat/commit-suggester#readme",
-  "author": "Rishin Poolat",
+  "author": "Mohammed Rishin Poolat",
+  "engines": {
+    "bun": ">=1.0.0"
+  },
   "license": "MIT",
   "dependencies": {
     "axios": "^1.10.0",
