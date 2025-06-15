@@ -1,183 +1,126 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import type { FileChange } from '../types';
+import type { FileChange, GitFileStatus } from '../types';
 
 const execAsync = promisify(exec);
-const MAX_BUFFER = 1024 * 1024 * 10; // 10MB buffer
-
-type GitStatus = 'added' | 'modified' | 'deleted' | 'renamed' | 'copied' | 'updated';
 
 export class GitService {
-  private readonly execOptions = { maxBuffer: MAX_BUFFER };
-
-  async getStagedFiles(): Promise<FileChange[]> {
+  async getAllChanges(): Promise<FileChange[]> {
     try {
-      await this.checkGitRepository();
-      const files = await this.getStagedFileList();
+      // Check if we're in a git repository
+      await execAsync('git rev-parse --is-inside-work-tree');
       
-      if (files.length === 0) {
+      // Check git config
+      await this.checkGitConfig();
+      
+      // Stage all changes first (git add .)
+      console.log('📦 Staging all changes...');
+      await execAsync('git add .');
+      
+      // Get staged files
+      const { stdout: stagedFiles } = await execAsync('git diff --cached --name-status');
+      
+      if (!stagedFiles.trim()) {
         throw new Error('No changes found to commit. Make some changes to your files first.');
       }
 
-      const changes = await Promise.all(files.map(file => this.getFileChanges(file)));
-      return this.summarizeLargeChanges(changes);
+      const changes = await Promise.all(
+        stagedFiles.trim().split('\n').map(line => this.getFileChange(line))
+      );
+
+      return changes.filter(Boolean);
     } catch (error) {
-      this.handleGitError(error);
+      if (error instanceof Error) {
+        if (error.message.includes('not a git repository')) {
+          throw new Error('❌ Not a git repository. Run: git init');
+        }
+        if (error.message.includes('please tell me who you are')) {
+          throw new Error('❌ Git user not configured. Run:\ngit config --global user.email "you@example.com"\ngit config --global user.name "Your Name"');
+        }
+      }
       throw error;
     }
   }
 
-  private async checkGitRepository(): Promise<void> {
+  private async getFileChange(statusLine: string): Promise<FileChange> {
+    const [status, filename] = statusLine.split('\t');
+    
     try {
-      await execAsync('git rev-parse --is-inside-work-tree', this.execOptions);
-    } catch {
-      throw new Error('Not a git repository. Initialize git first with: git init');
-    }
-  }
-
-  private async getStagedFileList(): Promise<string[]> {
-    const { stdout } = await execAsync('git diff --cached --name-only', this.execOptions);
-    return stdout.split('\n').filter(Boolean);
-  }
-
-  private async getFileChanges(filename: string): Promise<FileChange> {
-    try {
-      const [diff, status] = await Promise.all([
-        this.getFileDiff(filename),
-        this.getFileStatus(filename)
-      ]);
+      const { stdout: diff } = await execAsync(`git diff --cached -- "${filename}"`);
+      
+      // Count additions and deletions
+      const additions = (diff.match(/^\+(?!\+\+)/gm) || []).length;
+      const deletions = (diff.match(/^-(?!--)/gm) || []).length;
 
       return {
         filename,
-        diff,
-        additions: this.countChanges(diff, /^\+(?!\+\+)/gm),
-        deletions: this.countChanges(diff, /^-(?!--)/gm),
-        status: this.parseGitStatus(status)
+        diff: diff.length > 3000 ? diff.slice(0, 3000) + '\n... (truncated)' : diff,
+        additions,
+        deletions,
+        status: this.parseStatus(status) as GitFileStatus
       };
     } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(`Failed to get changes for ${filename}: ${error.message}`);
-      }
-      throw new Error(`Failed to get changes for ${filename}`);
+      console.warn(`⚠️  Could not get diff for ${filename}`);
+      return {
+        filename,
+        diff: 'Could not retrieve diff',
+        additions: 0,
+        deletions: 0,
+        status: 'modified' as GitFileStatus
+      };
     }
   }
 
-  private async getFileDiff(filename: string): Promise<string> {
-    const { stdout } = await execAsync(`git diff --cached -- "${filename}"`, this.execOptions);
-    return stdout;
+  private parseStatus(status: string): string {
+    switch (status) {
+      case 'A': return 'added';
+      case 'M': return 'modified';
+      case 'D': return 'deleted';
+      case 'R': return 'renamed';
+      case 'C': return 'copied';
+      default: return 'modified';
+    }
   }
 
-  private async getFileStatus(filename: string): Promise<string> {
-    const { stdout } = await execAsync(`git status --porcelain -- "${filename}"`, this.execOptions);
-    return stdout.trim().substring(0, 2);
-  }
-
-  private countChanges(diff: string, pattern: RegExp): number {
-    return (diff.match(pattern) || []).length;
-  }
-
-  private parseGitStatus(status: string): GitStatus {
-    const statusMap: Record<string, GitStatus> = {
-      'A ': 'added',
-      'M ': 'modified',
-      'D ': 'deleted',
-      'R ': 'renamed',
-      'C ': 'copied',
-      'U ': 'updated'
-    };
-
-    return statusMap[status] || 'modified';
-  }
-
-  private summarizeLargeChanges(changes: FileChange[]): FileChange[] {
-    const totalChanges = changes.reduce((acc, curr) => acc + curr.diff.length, 0);
-    if (totalChanges <= 1000000) return changes;
-
-    return changes.map(change => ({
-      ...change,
-      diff: this.summarizeDiff(change.diff)
-    }));
-  }
-
-  private summarizeDiff(diff: string): string {
-    const lines = diff.split('\n');
-    if (lines.length <= 100) return diff;
-
-    const firstLines = lines.slice(0, 50);
-    const lastLines = lines.slice(-50);
-    return [
-      ...firstLines,
-      '...',
-      `[${lines.length - 100} lines skipped]`,
-      '...',
-      ...lastLines
-    ].join('\n');
-  }
-
-  async hasGitConfig(): Promise<boolean> {
+  private async checkGitConfig(): Promise<void> {
     try {
-      await Promise.all([
-        execAsync('git config user.name', this.execOptions),
-        execAsync('git config user.email', this.execOptions)
-      ]);
-      return true;
+      await execAsync('git config user.name');
+      await execAsync('git config user.email');
     } catch {
-      return false;
+      throw new Error('Git user not configured');
     }
   }
 
-  async stageAllChanges(): Promise<void> {
+  async commit(message: string): Promise<void> {
     try {
-      await execAsync('git add .', this.execOptions);
-    } catch (error) {
-      this.handleGitError(error);
-      throw new Error('Failed to stage changes: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    }
-  }
-
-  async getCurrentBranch(): Promise<string> {
-    try {
-      const { stdout } = await execAsync('git branch --show-current', this.execOptions);
-      return stdout.trim();
-    } catch {
-      throw new Error('Failed to get current branch');
-    }
-  }
-
-  async getRecentCommits(count: number = 3): Promise<string[]> {
-    try {
-      const { stdout } = await execAsync(`git log -${count} --oneline`, this.execOptions);
-      return stdout.split('\n').filter(Boolean);
-    } catch {
-      return [];
-    }
-  }
-
-  async commitChanges(message: string): Promise<void> {
-    try {
-      // Verify there are staged changes
-      const { stdout: staged } = await execAsync('git diff --cached --quiet || echo "has changes"', this.execOptions);
-      
-      if (!staged) {
-        throw new Error('No changes found to commit. Make some changes to your files first.');
-      }
-
-      // Escape quotes in commit message
+      // Escape quotes and commit
       const escapedMessage = message.replace(/"/g, '\\"');
-      await execAsync(`git commit -m "${escapedMessage}"`, this.execOptions);
+      await execAsync(`git commit -m "${escapedMessage}"`);
+      console.log('✅ Committed successfully!');
     } catch (error) {
-      this.handleGitError(error);
-      throw error;
+      throw new Error(`Failed to commit: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  private handleGitError(error: unknown): void {
-    if (error instanceof Error) {
-      if (error.message.includes('not a git repository')) {
-        throw new Error('Not a git repository. Initialize git first with: git init');
-      } else if (error.message.includes('please tell me who you are')) {
-        throw new Error('Git user not configured. Run:\ngit config --global user.email "you@example.com"\ngit config --global user.name "Your Name"');
+  async getStatus(): Promise<{ staged: number; unstaged: number; untracked: number }> {
+    try {
+      const { stdout } = await execAsync('git status --porcelain');
+      const lines = stdout.trim().split('\n').filter(Boolean);
+      
+      let staged = 0, unstaged = 0, untracked = 0;
+      
+      for (const line of lines) {
+        const stagedStatus = line[0];
+        const unstagedStatus = line[1];
+        
+        if (stagedStatus !== ' ' && stagedStatus !== '?') staged++;
+        if (unstagedStatus !== ' ') unstaged++;
+        if (line.startsWith('??')) untracked++;
       }
+      
+      return { staged, unstaged, untracked };
+    } catch {
+      return { staged: 0, unstaged: 0, untracked: 0 };
     }
   }
 }

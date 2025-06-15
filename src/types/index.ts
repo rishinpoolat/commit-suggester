@@ -20,6 +20,15 @@ export interface CommitSuggestion {
 
 export type GitFileStatus = 'added' | 'modified' | 'deleted' | 'renamed' | 'copied' | 'updated';
 
+export const GitFileStatusEnum = {
+  ADDED: 'added' as const,
+  MODIFIED: 'modified' as const,
+  DELETED: 'deleted' as const,
+  RENAMED: 'renamed' as const,
+  COPIED: 'copied' as const,
+  UPDATED: 'updated' as const
+} as const;
+
 export interface GeminiResponse {
   candidates: Array<{
     content: {

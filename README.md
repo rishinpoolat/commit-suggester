@@ -1,163 +1,174 @@
 # Commit Suggester
 
-A TypeScript-based CLI tool that uses Google's Gemini AI to suggest meaningful conventional commit messages for your git changes.
+A simple CLI tool that uses AI to generate conventional commit messages for your git changes.
 
 ## Features
 
-- 🤖 AI-powered commit message generation
-- 📝 Follows [Conventional Commits](https://www.conventionalcommits.org/) specification
-- 🎯 Analyzes git diffs for context-aware suggestions
-- 🔍 Smart scope detection based on file types
-- ✨ Interactive CLI with color-coded suggestions
-- ✅ Option to write custom commit messages
-- 🚀 Automatically stages all changes (`git add .`)
+- 🤖 **Multiple AI Providers** - Groq, OpenAI, Anthropic, Google Gemini
+- 🚀 **Auto-staging** - Automatically stages all changes before analysis
+- ⚡ **Simple Setup** - Just set environment variables
+- 🎯 **Smart Analysis** - Analyzes your actual git diffs
+- 📝 **Conventional Commits** - Follows standard format
+- ✨ **Interactive** - Choose from 3 AI suggestions or write custom
 
-## Prerequisites
+## Quick Setup
 
-- [Bun](https://bun.sh) installed on your system
-- Git initialized repository
-- [Gemini API key](https://makersuite.google.com/app/apikey)
-
-## Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/rishinpoolat/commit-suggester.git
-cd commit-suggester
-```
-
-2. Install dependencies:
+1. **Install dependencies:**
 ```bash
 bun install
 ```
 
-3. Set up your Gemini API key:
+2. **Set your AI API key** (choose one):
 ```bash
-# Create config directory
-mkdir -p ~/.config/commit-suggester
+# Recommended - Groq (fast & free)
+export GROQ_API_KEY="your_groq_key_here"
 
-# Add your API key
-echo "GEMINI_API_KEY=your_api_key_here" > ~/.config/commit-suggester/.env
+# Or use others
+export OPENAI_API_KEY="your_openai_key_here"
+export ANTHROPIC_API_KEY="your_anthropic_key_here"  
+export GOOGLE_GENERATIVE_AI_API_KEY="your_google_key_here"
+
+# Add to your shell profile
+echo 'export GROQ_API_KEY="your_key"' >> ~/.zshrc
+source ~/.zshrc
 ```
 
-4. Build and install globally:
+3. **Build & Install:**
 ```bash
 bun run build
 bun link
 ```
 
-Now you can use `commit-suggester` in any git repository!
+## Get API Keys
+
+- **Groq** (Recommended): [console.groq.com/keys](https://console.groq.com/keys) - Fast & Free
+- **OpenAI**: [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+- **Anthropic**: [console.anthropic.com](https://console.anthropic.com/)
+- **Google**: [ai.google.dev/tutorials/setup](https://ai.google.dev/tutorials/setup)
 
 ## Usage
 
-1. Make changes to your files
-
-2. Run the commit-suggester tool:
+### **Auto Mode (Default)**
 ```bash
+# Make your changes
+echo "console.log('hello')" > test.js
+
+# Auto-commit with best suggestion
 commit-suggester
 ```
 
-The tool will automatically stage all your changes (equivalent to `git add .`) and then generate commit suggestions.
-
-3. Select from:
-   - Three AI-generated suggestions
-   - Option to write your own custom message
-
-Example output:
+**Output:**
 ```
-🔍 Select a commit message:
-  1. feat(auth): add user authentication
-  2. fix(api): resolve login endpoint error
-  3. refactor(utils): simplify auth helpers
-  ✎ Write custom commit message
+🚀 Commit Suggester - AI-powered Git Commits
+
+📦 Staging all changes...
+📊 Analyzing changes...
+✅ Found 1 file(s): +1/-0
+
+🤖 Using GROQ AI (llama-3.3-70b-versatile)
+🤖 Generating commit suggestions...
+
+🎯 Auto-selected: "feat: add hello world console log"
+
+📝 Committing changes...
+✅ Committed successfully!
+
+🎉 Successfully committed: "feat: add hello world console log"
 ```
 
-## Commit Types
+### **Interactive Mode**
+```bash
+# Choose from 3 options + custom
+commit-suggester -i
+```
 
-The tool generates suggestions using these conventional commit types:
+**Output:**
+```
+🚀 Commit Suggester - AI-powered Git Commits
+
+📦 Staging all changes...
+📊 Analyzing changes...
+✅ Found 1 file(s): +1/-0
+
+🤖 Using GROQ AI (llama-3.3-70b-versatile)
+🤖 Generating commit suggestions...
+
+📋 Interactive Mode - Choose your commit message:
+
+? Select a commit message:
+❯ [1] feat: add hello world console log
+  [2] chore: create test javascript file  
+  [3] feat(test): add basic console output
+  ✏️  Write custom message
+
+? Commit with: "feat: add hello world console log"? Yes
+
+📝 Committing changes...
+✅ Committed successfully!
+
+🎉 Successfully committed: "feat: add hello world console log"
+```
+
+### **Help**
+```bash
+commit-suggester --help
+```
+
+## How it Works
+
+### **Auto Mode:**
+1. **Auto-stages** all your changes (`git add .`)
+2. **Analyzes** git diffs to understand what changed  
+3. **Generates** 3 AI suggestions (best one first)
+4. **Auto-commits** with the best suggestion
+
+### **Interactive Mode (-i):**
+1. **Auto-stages** all your changes (`git add .`)
+2. **Analyzes** git diffs to understand what changed
+3. **Shows** 3 AI suggestions + custom option
+4. **Interactive** selection with confirmation
+5. **Commits** with your chosen message
+
+## Supported Commit Types
 
 - `feat`: New features
-- `fix`: Bug fixes
-- `docs`: Documentation changes
+- `fix`: Bug fixes  
+- `docs`: Documentation
 - `style`: Code style changes
 - `refactor`: Code refactoring
-- `test`: Adding/updating tests
-- `chore`: Maintenance tasks
+- `test`: Tests
+- `chore`: Maintenance
 - `perf`: Performance improvements
-
-## Development
-
-Want to contribute? Here's how to set up the project for development:
-
-```bash
-# Clone the repository
-git clone https://github.com/rishinpoolat/commit-suggester.git
-cd commit-suggester
-
-# Install dependencies
-bun install
-
-# Build the project
-bun run build
-
-# Link for local testing
-bun link
-```
 
 ## Project Structure
 
 ```
 src/
-├── cli.ts              # Command-line interfaces
-├── commit-suggester.ts # Main class
-├── services/          
-│   ├── ai.service.ts   # Gemini AI integration
-│   └── git.service.ts  # Git operations
+├── cli.ts              # Main CLI interface
+├── CommitSuggester.ts  # Core logic
+├── services/
+│   ├── AIService.ts    # AI provider handling
+│   └── GitService.ts   # Git operations
 └── types/
     └── index.ts        # TypeScript types
 ```
 
-## Troubleshooting
+## Development
 
-### API Key Issues
+```bash
+# Install dependencies
+bun install
 
-If you see "Gemini API key not found":
-1. Get your API key from [Google MakerSuite](https://makersuite.google.com/app/apikey)
-2. Create the config directory:
-   ```bash
-   mkdir -p ~/.config/commit-suggester
-   ```
-3. Save your API key:
-   ```bash
-   echo "GEMINI_API_KEY=your_key_here" > ~/.config/commit-suggester/.env
-   ```
+# Run in development
+bun run dev
 
-### Git Issues
+# Build
+bun run build
 
-Make sure:
-- You're in a git repository (`git init` if needed)
-- You have made some changes to your files
-- Git user is configured:
-  ```bash
-  git config --global user.name "Your Name"
-  git config --global user.email "your@email.com"
-  ```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to your branch
-5. Open a Pull Request
+# Type check
+bun run typecheck
+```
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Credits
-
-- [Google's Gemini AI](https://deepmind.google/technologies/gemini/) for powering the suggestions
-- [Conventional Commits](https://www.conventionalcommits.org/) for the commit message specification
+MIT - See [LICENSE](LICENSE) file for details.
