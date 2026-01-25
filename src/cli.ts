@@ -3,15 +3,23 @@ import { CommitSuggester } from './CommitSuggester';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 
-const isInteractiveMode = process.argv.includes('-i') || process.argv.includes('--interactive');
-const showHelp = process.argv.includes('-h') || process.argv.includes('--help');
+const args = process.argv.slice(2);
+const isInteractiveMode = args.includes('-i') || args.includes('--interactive');
+const showHelp = args.includes('-h') || args.includes('--help');
+const isDryRun = args.includes('-d') || args.includes('--dry-run');
+const stagedOnly = args.includes('-s') || args.includes('--staged');
 
 const printHelp = () => {
   console.log(chalk.cyan('\n🚀 Commit Suggester - AI-powered Git Commits\n'));
   console.log('Usage:');
-  console.log(`  ${chalk.green('commit-suggester')}           ${chalk.dim('# Auto-select best commit message')}`);
-  console.log(`  ${chalk.green('commit-suggester -i')}        ${chalk.dim('# Interactive mode (3 options + custom)')}`);
-  console.log(`  ${chalk.green('commit-suggester --help')}    ${chalk.dim('# Show this help')}\n`);
+  console.log(`  ${chalk.green('commit-suggester')}              ${chalk.dim('# Auto-select best commit message')}`);
+  console.log(`  ${chalk.green('commit-suggester -i')}           ${chalk.dim('# Interactive mode (3 options + custom)')}`);
+  console.log(`  ${chalk.green('commit-suggester -d, --dry-run')} ${chalk.dim('# Preview suggestions without committing')}`);
+  console.log(`  ${chalk.green('commit-suggester -s, --staged')}  ${chalk.dim('# Only use already staged changes')}`);
+  console.log(`  ${chalk.green('commit-suggester --help')}        ${chalk.dim('# Show this help')}\n`);
+  console.log('Options can be combined:');
+  console.log(`  ${chalk.green('commit-suggester -i -d')}         ${chalk.dim('# Interactive + dry run')}`);
+  console.log(`  ${chalk.green('commit-suggester -i -s')}         ${chalk.dim('# Interactive + staged only')}\n`);
   console.log('Setup:');
   console.log(`  ${chalk.yellow('export GROQ_API_KEY="your_key"')}      ${chalk.dim('# Recommended - Fast & Free')}`);
   console.log(`  ${chalk.yellow('export OPENAI_API_KEY="your_key"')}    ${chalk.dim('# Alternative')}`);
@@ -26,8 +34,12 @@ const main = async (): Promise<void> => {
 
   try {
     console.log(chalk.cyan('\n🚀 Commit Suggester - AI-powered Git Commits\n'));
-    
-    const suggester = new CommitSuggester();
+
+    if (isDryRun) {
+      console.log(chalk.yellow('🔍 Dry run mode - no commit will be made\n'));
+    }
+
+    const suggester = new CommitSuggester({ stagedOnly });
     
     // Get change summary
     console.log(chalk.blue('📊 Analyzing changes...'));
@@ -95,9 +107,14 @@ const main = async (): Promise<void> => {
       console.log(chalk.green(`🎯 Auto-selected: "${chalk.bold(finalMessage)}"`));
     }
 
-    console.log(chalk.blue('\n📝 Committing changes...'));
-    await suggester.commit(finalMessage);
-    console.log(chalk.green(`\n🎉 Successfully committed: "${finalMessage}"`));
+    if (isDryRun) {
+      console.log(chalk.yellow(`\n🔍 Dry run - would commit: "${finalMessage}"`));
+      console.log(chalk.dim('Run without --dry-run to actually commit.'));
+    } else {
+      console.log(chalk.blue('\n📝 Committing changes...'));
+      await suggester.commit(finalMessage);
+      console.log(chalk.green(`\n🎉 Successfully committed: "${finalMessage}"`));
+    }
 
   } catch (error) {
     console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : 'Unknown error');

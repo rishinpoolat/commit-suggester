@@ -5,22 +5,29 @@ import type { FileChange, GitFileStatus } from '../types';
 const execAsync = promisify(exec);
 
 export class GitService {
-  async getAllChanges(): Promise<FileChange[]> {
+  async getAllChanges(stagedOnly: boolean = false): Promise<FileChange[]> {
     try {
       // Check if we're in a git repository
       await execAsync('git rev-parse --is-inside-work-tree');
-      
+
       // Check git config
       await this.checkGitConfig();
-      
-      // Stage all changes first (git add .)
-      console.log('📦 Staging all changes...');
-      await execAsync('git add .');
+
+      // Stage all changes unless --staged flag is used
+      if (!stagedOnly) {
+        console.log('📦 Staging all changes...');
+        await execAsync('git add .');
+      } else {
+        console.log('📦 Using already staged changes...');
+      }
       
       // Get staged files
       const { stdout: stagedFiles } = await execAsync('git diff --cached --name-status');
       
       if (!stagedFiles.trim()) {
+        if (stagedOnly) {
+          throw new Error('No staged changes found. Stage files first with: git add <files>');
+        }
         throw new Error('No changes found to commit. Make some changes to your files first.');
       }
 
