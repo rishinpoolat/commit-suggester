@@ -25,6 +25,10 @@ export class CommitSuggester {
     await this.gitService.commit(message);
   }
 
+  async push(): Promise<void> {
+    await this.gitService.push();
+  }
+
   async getChangeSummary(): Promise<{ files: number; additions: number; deletions: number }> {
     const changes = await this.gitService.getAllChanges(this.options.stagedOnly);
     const stats = changes.reduce((acc, change) => ({

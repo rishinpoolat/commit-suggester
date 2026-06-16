@@ -109,6 +109,14 @@ export class GitService {
     }
   }
 
+  async push(): Promise<void> {
+    try {
+      await execAsync('git push');
+    } catch (error) {
+      throw new Error(`Failed to push: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   async getStatus(): Promise<{ staged: number; unstaged: number; untracked: number }> {
     try {
       const { stdout } = await execAsync('git status --porcelain');

@@ -8,6 +8,7 @@ const isInteractiveMode = args.includes('-i') || args.includes('--interactive');
 const showHelp = args.includes('-h') || args.includes('--help');
 const isDryRun = args.includes('-d') || args.includes('--dry-run');
 const stagedOnly = args.includes('-s') || args.includes('--staged');
+const shouldPush = args.includes('-p') || args.includes('--push');
 
 const printHelp = () => {
   console.log(chalk.cyan('\n🚀 Commit Suggester - AI-powered Git Commits\n'));
@@ -16,10 +17,12 @@ const printHelp = () => {
   console.log(`  ${chalk.green('commit-suggester -i')}           ${chalk.dim('# Interactive mode (3 options + custom)')}`);
   console.log(`  ${chalk.green('commit-suggester -d, --dry-run')} ${chalk.dim('# Preview suggestions without committing')}`);
   console.log(`  ${chalk.green('commit-suggester -s, --staged')}  ${chalk.dim('# Only use already staged changes')}`);
+  console.log(`  ${chalk.green('commit-suggester -p, --push')}    ${chalk.dim('# Push to remote after committing')}`);
   console.log(`  ${chalk.green('commit-suggester --help')}        ${chalk.dim('# Show this help')}\n`);
   console.log('Options can be combined:');
   console.log(`  ${chalk.green('commit-suggester -i -d')}         ${chalk.dim('# Interactive + dry run')}`);
-  console.log(`  ${chalk.green('commit-suggester -i -s')}         ${chalk.dim('# Interactive + staged only')}\n`);
+  console.log(`  ${chalk.green('commit-suggester -i -s')}         ${chalk.dim('# Interactive + staged only')}`);
+  console.log(`  ${chalk.green('commit-suggester -i -p')}         ${chalk.dim('# Interactive + push after commit')}\n`);
   console.log('Setup:');
   console.log(`  ${chalk.yellow('export GROQ_API_KEY="your_key"')}      ${chalk.dim('# Recommended - Fast & Free')}`);
   console.log(`  ${chalk.yellow('export OPENAI_API_KEY="your_key"')}    ${chalk.dim('# Alternative')}`);
@@ -114,6 +117,12 @@ const main = async (): Promise<void> => {
       console.log(chalk.blue('\n📝 Committing changes...'));
       await suggester.commit(finalMessage);
       console.log(chalk.green(`\n🎉 Successfully committed: "${finalMessage}"`));
+
+      if (shouldPush) {
+        console.log(chalk.blue('\n📤 Pushing to remote...'));
+        await suggester.push();
+        console.log(chalk.green('✅ Pushed successfully!'));
+      }
     }
 
   } catch (error) {
