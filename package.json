@@ -1,6 +1,6 @@
 {
   "name": "commit-suggester",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "AI-powered git commit message suggester with multiple AI providers",
   "type": "module",
   "bin": {

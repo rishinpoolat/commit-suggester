@@ -8,6 +8,7 @@ A simple CLI tool that uses AI to generate conventional commit messages for your
 - 🚀 **Auto-staging** - Automatically stages all changes before analysis
 - 🔍 **Dry Run Mode** - Preview suggestions without committing
 - 📦 **Staged Only Mode** - Analyze only pre-staged changes
+- 📤 **Auto-push** - Optionally push to remote after committing
 - ⚡ **Simple Setup** - Just set environment variables
 - 🎯 **Smart Analysis** - Analyzes your actual git diffs
 - 📝 **Conventional Commits** - Follows standard format
@@ -45,6 +46,7 @@ commit-suggester           # Auto mode
 commit-suggester -i        # Interactive mode
 commit-suggester -d        # Dry run (preview only)
 commit-suggester -s        # Staged only (skip auto-staging)
+commit-suggester -p        # Push to remote after committing
 ```
 
 ## Get API Keys
@@ -154,11 +156,25 @@ commit-suggester -s
 commit-suggester --staged
 ```
 
+### **Push After Committing**
+Automatically push to the remote branch after a successful commit:
+```bash
+commit-suggester -p
+# or
+commit-suggester --push
+```
+
+Combine with interactive mode:
+```bash
+commit-suggester -i -p     # Choose message, then push
+```
+
 ### **Combining Options**
 Options can be combined for more control:
 ```bash
 commit-suggester -i -d     # Interactive + dry run
 commit-suggester -i -s     # Interactive + staged only
+commit-suggester -i -p     # Interactive + push after commit
 commit-suggester -s -d     # Staged only + dry run
 ```
 
@@ -174,13 +190,15 @@ commit-suggester --help
 Usage:
   commit-suggester              # Auto-select best commit message
   commit-suggester -i           # Interactive mode (3 options + custom)
-  commit-suggester -d, --dry-run # Preview suggestions without committing
-  commit-suggester -s, --staged  # Only use already staged changes
+  commit-suggester -d, --dry-run    # Preview suggestions without committing
+  commit-suggester -s, --staged     # Only use already staged changes
+  commit-suggester -p, --push       # Push to remote after committing
   commit-suggester --help        # Show this help
 
 Options can be combined:
   commit-suggester -i -d         # Interactive + dry run
   commit-suggester -i -s         # Interactive + staged only
+  commit-suggester -i -p         # Interactive + push after commit
 
 Setup:
   export GROQ_API_KEY="your_key"      # Recommended - Fast & Free
@@ -222,6 +240,7 @@ Setup:
 | `--interactive` | `-i` | Choose from 3 suggestions + custom input |
 | `--dry-run` | `-d` | Preview suggestions without committing |
 | `--staged` | `-s` | Only analyze already-staged changes |
+| `--push` | `-p` | Push to remote after committing |
 | `--help` | `-h` | Show help information |
 
 ## Supported Commit Types
