@@ -16,6 +16,10 @@ export class CommitSuggester {
     this.options = options;
   }
 
+  validateAI(): void {
+    this.aiService.validate();
+  }
+
   async getSuggestions(): Promise<string[]> {
     const changes = await this.gitService.getAllChanges(this.options.stagedOnly);
     return await this.aiService.getSuggestions(changes);

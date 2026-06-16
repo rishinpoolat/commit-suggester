@@ -43,7 +43,10 @@ const main = async (): Promise<void> => {
     }
 
     const suggester = new CommitSuggester({ stagedOnly });
-    
+
+    // Validate API key before touching git
+    suggester.validateAI();
+
     // Get change summary
     console.log(chalk.blue('📊 Analyzing changes...'));
     const summary = await suggester.getChangeSummary();

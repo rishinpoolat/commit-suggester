@@ -55,6 +55,10 @@ export class AIService {
 Add to your ~/.zshrc or ~/.bashrc and run: source ~/.zshrc`);
   }
 
+  validate(): void {
+    this.getEnvApiKey();
+  }
+
   async getSuggestions(changes: FileChange[]): Promise<string[]> {
     const { provider, apiKey, model } = this.getEnvApiKey();
     console.log(`🤖 Using ${provider.toUpperCase()} AI (${model})`);
