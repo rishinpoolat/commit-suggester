@@ -1,5 +1,6 @@
 src/
 *.md
+.claude/
 .git/
 .gitignore
 tsconfig*.json
