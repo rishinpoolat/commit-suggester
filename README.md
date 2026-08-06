@@ -51,10 +51,43 @@ commit-suggester -p        # Push to remote after committing
 
 ## Get API Keys
 
-- **Groq** (Recommended): [console.groq.com/keys](https://console.groq.com/keys) - Fast & Free
-- **OpenAI**: [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-- **Anthropic**: [console.anthropic.com](https://console.anthropic.com/)
-- **Google**: [ai.google.dev/tutorials/setup](https://ai.google.dev/tutorials/setup)
+Only one key is needed — Commit Suggester picks the first one it finds, in this order: Groq → OpenAI → Anthropic → Google.
+
+### Groq (Recommended - Fast & Free)
+1. Go to [console.groq.com/keys](https://console.groq.com/keys)
+2. Sign up or log in (GitHub/Google login supported)
+3. Click **Create API Key**, give it a name, and copy the key
+4. `export GROQ_API_KEY="your_key"`
+
+Groq has a generous free tier and is the fastest option, so it's the default recommendation.
+
+### OpenAI
+1. Go to [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+2. Log in or create an account
+3. Click **Create new secret key** and copy it immediately (it's only shown once)
+4. Add billing details under [platform.openai.com/account/billing](https://platform.openai.com/account/billing) — new accounts get a small free credit, after that it's pay-as-you-go
+5. `export OPENAI_API_KEY="your_key"`
+
+### Anthropic (Claude)
+1. Go to [console.anthropic.com](https://console.anthropic.com/)
+2. Sign up or log in
+3. Navigate to **Settings → API Keys** and click **Create Key**
+4. Copy the key and add a payment method under **Settings → Billing** if you haven't already
+5. `export ANTHROPIC_API_KEY="your_key"`
+
+### Google Gemini
+1. Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey) (or [ai.google.dev/tutorials/setup](https://ai.google.dev/tutorials/setup) for the full guide)
+2. Sign in with your Google account
+3. Click **Create API key** and choose a Google Cloud project (or let it create one for you)
+4. Copy the key — Gemini has a free tier with rate limits, no billing required to start
+5. `export GOOGLE_GENERATIVE_AI_API_KEY="your_key"` (or `GEMINI_API_KEY`)
+
+### Make it permanent
+Add the export line to your shell profile so you don't have to set it every session:
+```bash
+echo 'export GROQ_API_KEY="your_key"' >> ~/.zshrc   # or ~/.bashrc
+source ~/.zshrc
+```
 
 ## Usage
 
